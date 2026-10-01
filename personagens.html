@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Personagens e Armas — Strike Force: Céu Aberto</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Teko:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#090a0f;--panel:#14181f;--line:#2b3140;--gold:#ffcc33;--txt:#eceff4;--mut:#93a0b0;--blue:#6cf;--pink:#f9a}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% 0,#1b2735,var(--bg) 70%) fixed;color:var(--txt);font-family:'Rajdhani',Arial,sans-serif;font-size:16px;padding:env(safe-area-inset-top) env(safe-area-inset-right) 40px env(safe-area-inset-left)}
+header{max-width:1100px;margin:0 auto;padding:22px 16px 6px}
+.back{color:var(--mut);text-decoration:none;font-weight:600}
+.back:hover{color:var(--gold)}
+h1{font-family:'Teko',sans-serif;font-size:clamp(38px,8vw,64px);margin:6px 0 0;color:var(--gold);letter-spacing:.06em;line-height:1}
+header p{margin:6px 0 0;color:var(--mut);max-width:60ch}
+.tabs{max-width:1100px;margin:16px auto 0;padding:0 16px;display:flex;gap:8px}
+.tabs button{font:inherit;font-weight:700;padding:10px 20px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--txt);cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--gold);color:#222;border-color:var(--gold)}
+main{max-width:1100px;margin:16px auto 0;padding:0 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:10px;padding:14px 14px 12px}
+.head{display:flex;align-items:baseline;gap:10px}
+.n{font-family:'Teko',sans-serif;font-size:34px;color:var(--c);line-height:1;min-width:30px}
+.card h2{margin:0;font-size:22px;line-height:1.1}
+.desc{margin:4px 0 8px;color:var(--mut);font-size:14px}
+.stats{display:flex;gap:14px;font-weight:700;font-size:14px;color:#7d9;margin-bottom:10px}
+.w{background:#0d1017;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px}
+.wt{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mut);font-weight:600}
+.wt b{color:var(--blue)}
+.stage{display:block;width:100%;height:180px;margin:6px 0 4px;border-radius:6px;background:linear-gradient(180deg,#1d2a3c 0%,#33405a 62%,#4b5a45 100%)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.chips span{font-size:12.5px;font-weight:700;background:#1b2130;border-radius:5px;padding:2px 7px}
+.sk{margin-top:8px;font-size:13.5px;line-height:1.35}
+.sk i{font-style:normal;font-weight:700}
+.sk .e i{color:var(--blue)} .sk .f i{color:var(--pink)}
+.sk small{color:var(--mut)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="index.html">← Voltar ao jogo</a>
+  <h1>PERSONAGENS E ARMAS</h1>
+  <p>As 8 classes jogáveis na ordem do menu de seleção, cada uma com suas duas armas, o recurso (E) e a habilidade especial (F). Depois, os inimigos.</p>
+</header>
+<div class="tabs">
+  <button data-t="p" aria-pressed="true">Jogáveis (8)</button>
+  <button data-t="e" aria-pressed="false">Inimigos (7)</button>
+</div>
+<main id="list"></main>
+
+<script>
+// ===== motor de desenho: copiado do game.js (mesmo visual do jogo) =====
+let ctx = null;
+const WEAPON_SHEETS = {
+  minigun:   { src: 'minigun.png',   frames: 6, w: 174, h: 13 },
+  pistol:    { src: 'pistol.png',    frames: 6, w: 90,  h: 12 },
+  revolver:  { src: 'revolver.png',  frames: 6, w: 84,  h: 12 },
+  shotgun:   { src: 'shotgun.png',   frames: 6, w: 138, h: 15 },
+  sniper:    { src: 'sniper.png',    frames: 6, w: 216, h: 14 },
+  subfusile: { src: 'subfusile.png', frames: 6, w: 126, h: 13 },
+  uzi:       { src: 'uzi.png',       frames: 6, w: 96,  h: 14 },
+  shot:      { src: 'shot.png',      frames: 6, w: 50,  h: 11 },
+};
+const CLASS_WEAPON_SPRITE = {
+  medico:      { primary: 'subfusile', secondary: 'pistol',    scale: 1.55 },
+  assassino:   { primary: 'sniper',    secondary: 'pistol',    scale: 1.35 },
+  metralhador: { primary: 'minigun',   secondary: 'pistol',    scale: 1.55 },
+  general:     { primary: 'pistol',    secondary: 'subfusile', scale: 1.6 },
+  engenheiro:  { primary: 'subfusile', secondary: 'pistol',    scale: 1.55 },
+  cacador:     { primary: 'shotgun',   secondary: 'pistol',    scale: 1.45 },
+  demolidor:   { primary: 'shotgun',   secondary: 'pistol',    scale: 1.5 },
+  lancachamas: { primary: 'minigun',   secondary: 'pistol',    scale: 1.5 },
+  soldado:     { primary: 'subfusile', scale: 1.5 },
+  sniper:      { primary: 'sniper',    scale: 1.35 },
+  pesado:      { primary: 'minigun',   scale: 1.55 },
+  batedor:     { primary: 'uzi',       scale: 1.6 },
+  grenadeiro:  { primary: 'subfusile', scale: 1.5 },
+  miniboss:    { primary: 'minigun',   scale: 1.55 },
+  boss:        { primary: 'minigun',   scale: 1.7 },
+};
+function resolveWeaponSprite(clsKey, weaponSlot){
+  const map = CLASS_WEAPON_SPRITE[clsKey];
+  if (!map) return { key: 'subfusile', scale: 1.5 };
+  if (weaponSlot === 'secondary' && map.secondary) return { key: map.secondary, scale: map.scale };
+  return { key: map.primary, scale: map.scale };
+}
+function shadeColor(hex, percent){
+  // simples darken/lighten
+  const num = parseInt(hex.replace('#',''), 16);
+  let r = (num >> 16) + percent;
+  let g = ((num >> 8) & 0x00FF) + percent;
+  let b = (num & 0x0000FF) + percent;
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+  return '#' + (0x1000000 + (r<<16) + (g<<8) + b).toString(16).slice(1);
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+  ctx.fill();
+}
+function drawClassBodyDetails(clsKey, color, isEnemy, flash, crouchMul){
+  if (flash || isEnemy) return;
+  const dark = shadeColor(color, -30);
+  // faixa / insignia única por classe no peito
+  if (clsKey === 'medico'){
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(12, 14, 6, 2);
+    ctx.fillRect(14, 12, 2, 6);
+  } else if (clsKey === 'assassino'){
+    ctx.fillStyle = dark;
+    ctx.fillRect(4, 11, 22, 3);
+    ctx.fillStyle = '#d488ff';
+    ctx.fillRect(13, 11, 4, 3);
+  } else if (clsKey === 'metralhador'){
+    ctx.fillStyle = '#333';
+    ctx.fillRect(6, 16, 18, 5);
+    ctx.fillStyle = '#ffcc33';
+    ctx.fillRect(8, 17, 4, 3);
+  } else if (clsKey === 'general'){
+    ctx.fillStyle = '#ffcc33';
+    ctx.beginPath();
+    ctx.moveTo(15, 12); ctx.lineTo(17, 16); ctx.lineTo(13, 16);
+    ctx.closePath(); ctx.fill();
+  } else if (clsKey === 'engenheiro'){
+    ctx.fillStyle = '#ffcc33';
+    ctx.fillRect(11, 14, 8, 3);
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+    ctx.strokeRect(11, 14, 8, 3);
+  } else if (clsKey === 'cacador'){
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(5, 15, 20, 4);
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(7, 16, 4, 2);
+  } else if (clsKey === 'demolidor'){
+    ctx.fillStyle = '#bf360c';
+    ctx.fillRect(6, 15, 18, 5);
+    ctx.fillStyle = '#ffcc33';
+    ctx.fillRect(12, 16, 6, 3);
+  } else if (clsKey === 'lancachamas'){
+    ctx.fillStyle = '#e65100';
+    ctx.fillRect(5, 14, 20, 5);
+    ctx.fillStyle = '#ffab00';
+    ctx.fillRect(8, 15, 5, 3);
+  }
+}
+function drawHelmet(cx, cy, color, clsKey, isEnemy, isBoss, isMiniBoss, flash){
+  const c = flash ? '#eee' : color;
+  const dark = flash ? '#ccc' : shadeColor(color, -40);
+
+  if (isBoss){
+    ctx.fillStyle = flash ? '#555' : '#1a1a1a';
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 11, 8, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = flash ? '#888' : '#333';
+    ctx.fillRect(cx-10, cy+1, 20, 5);
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(cx-6, cy+2, 12, 3);
+    return;
+  }
+  if (isMiniBoss){
+    ctx.fillStyle = dark;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 10, 7.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#ffcc33';
+    ctx.beginPath(); ctx.arc(cx, cy-2, 2.5, 0, Math.PI*2); ctx.fill();
+    return;
+  }
+  // ---- classes do jogador / aliados ----
+  if (clsKey === 'medico'){
+    // capacete médico + cruz branca grande
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 9.8, 7.2, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(cx-1.8, cy-4, 3.6, 9);
+    ctx.fillRect(cx-4.5, cy-0.8, 9, 3.2);
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-9, cy+2, 18, 3);
+    return;
+  }
+  if (clsKey === 'assassino'){
+    // capuz / boina roxa com sombra
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 10, 6.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-10, cy+1, 20, 4);
+    // aba lateral
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.moveTo(cx+8, cy+2); ctx.lineTo(cx+14, cy+5); ctx.lineTo(cx+8, cy+6);
+    ctx.closePath(); ctx.fill();
+    return;
+  }
+  if (clsKey === 'metralhador'){
+    // capacete pesado largo com viseira
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 11, 7.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-11, cy+2, 22, 5);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(cx-7, cy+3, 14, 2.5);
+    return;
+  }
+  if (clsKey === 'general'){
+    // quepe militar com estrela
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+2, 9.5, 5.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-10, cy+2, 20, 3.5);
+    ctx.fillStyle = '#ffcc33';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy-2); ctx.lineTo(cx+2.2, cy+1.5); ctx.lineTo(cx-2.2, cy+1.5);
+    ctx.closePath(); ctx.fill();
+    return;
+  }
+  if (clsKey === 'engenheiro'){
+    // capacete de obra + antena
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 10, 7, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-10, cy+2, 20, 3.5);
+    ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx+7, cy-1); ctx.lineTo(cx+12, cy-11); ctx.stroke();
+    ctx.fillStyle = '#ffcc33';
+    ctx.beginPath(); ctx.arc(cx+12, cy-11, 2.5, 0, Math.PI*2); ctx.fill();
+    return;
+  }
+  if (clsKey === 'cacador'){
+    // chapéu de caçador com aba larga
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+2, 10.5, 5.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-11, cy+2, 22, 3);
+    ctx.fillStyle = shadeColor(color, -20);
+    ctx.fillRect(cx-13, cy+4, 26, 2.5);
+    return;
+  }
+  if (clsKey === 'demolidor'){
+    // capacete reforçado laranja
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 10.5, 7.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-11, cy+2, 22, 4);
+    ctx.fillStyle = '#ffcc33';
+    ctx.fillRect(cx-4, cy-1, 8, 3);
+    return;
+  }
+  if (clsKey === 'lancachamas'){
+    // máscara / capacete com respirador
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 10, 7, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-10, cy+2, 20, 4);
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(cx+4, cy+5, 3.5, 0, Math.PI*2); ctx.fill();
+    return;
+  }
+  // inimigos
+  if (clsKey === 'sniper'){
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+2, 9, 5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-9, cy+1, 18, 3);
+    return;
+  }
+  if (clsKey === 'pesado'){
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+1, 10.5, 7, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-10, cy+2, 20, 4);
+    return;
+  }
+  if (clsKey === 'grenadeiro'){
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+2, 9, 6, 0, Math.PI, 0); ctx.fill();
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx+3, cy+5, 3, 0, Math.PI*2); ctx.stroke();
+    return;
+  }
+  if (clsKey === 'batedor'){
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(cx, cy+2, 9, 5.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.fillRect(cx-9, cy+2, 18, 3);
+    return;
+  }
+  // padrão soldado
+  ctx.fillStyle = c;
+  ctx.beginPath(); ctx.ellipse(cx, cy+1, 9.5, 7, 0, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = dark;
+  ctx.fillRect(cx-9, cy+2, 18, 3.5);
+}
+function drawWeaponSpriteSheet(key, frame, drawX, drawY, scale){
+  const sheet = WEAPON_SHEETS[key];
+  const img = weaponImages[key];
+  if (!sheet || !img || !img.complete || !img.naturalWidth) return false;
+  const fw = Math.floor(sheet.w / sheet.frames);
+  const fh = sheet.h;
+  const fr = Math.max(0, Math.min(sheet.frames - 1, frame|0));
+  const sx = fr * fw;
+  const dw = fw * scale;
+  const dh = fh * scale;
+  const prevSmooth = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, sx, 0, fw, fh, drawX, drawY - dh * 0.55, dw, dh);
+  ctx.imageSmoothingEnabled = prevSmooth;
+  return true;
+}
+function drawWeapon(x, y, clsKey, isEnemy, weaponSlot, firing){
+  ctx.save();
+  ctx.translate(x, y);
+
+  const slot = weaponSlot || 'primary';
+  const resolved = resolveWeaponSprite(clsKey, slot);
+  const key = resolved.key;
+  const scale = resolved.scale || 1.5;
+
+  let frame = 0;
+  if (firing) frame = 1 + (Math.floor(performance.now() / 40) % 2);
+
+  const drawn = drawWeaponSpriteSheet(key, frame, 2, 0, scale);
+
+  if (drawn && clsKey === 'general' && slot === 'primary'){
+    ctx.save();
+    ctx.translate(2, 5);
+    ctx.rotate(0.12);
+    drawWeaponSpriteSheet('revolver', frame, 0, 0, scale * 0.92);
+    ctx.restore();
+  }
+
+  if (!drawn){
+    ctx.fillStyle = isEnemy ? '#2c2c2c' : '#1a1a1a';
+    ctx.fillRect(0, -2.5, 20, 5);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(16, -3.5, 8, 7);
+  }
+
+  if (clsKey === 'lancachamas' && slot === 'primary'){
+    const t = performance.now();
+    const flicker = 0.7 + Math.sin(t / 30) * 0.3;
+    ctx.globalAlpha = flicker;
+    ctx.fillStyle = '#ffab00';
+    ctx.beginPath();
+    ctx.moveTo(28, 0); ctx.lineTo(36, -5); ctx.lineTo(34, 0); ctx.lineTo(36, 5);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff4400';
+    ctx.beginPath();
+    ctx.moveTo(28, 0); ctx.lineTo(33, -2.5); ctx.lineTo(32, 0); ctx.lineTo(33, 2.5);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+function drawSoldierSprite(ox, oy, opts){
+  const {
+    color = '#4CAF50',
+    facing = 1,
+    crouch = false,
+    climbing = false,
+    hitFlash = 0,
+    invuln = false,
+    isEnemy = false,
+    clsKey = '',
+    weaponAng = 0,
+    scale = 1,
+    isBoss = false,
+    isMiniBoss = false,
+    moving = false,
+    onGround = true,
+    weaponSlot = 'primary',
+    firing = false,
+  } = opts;
+
+  const t = performance.now();
+  const s = scale;
+  const flash = hitFlash > 0;
+  const bodyCol = flash ? '#ffffff' : color;
+  const darkCol = flash ? '#dddddd' : shadeColor(color, -35);
+  const skinCol = flash ? '#fff' : '#e0b088';
+  const bootCol = flash ? '#ccc' : (isEnemy ? '#1a1208' : '#2a2a2a');
+  const pantCol = flash ? '#bbb' : (isEnemy ? '#3d2a1a' : '#3a3a45');
+
+  // sombra (encolhe no ar)
+  {
+    const shadowScale = onGround && !climbing ? 1 : 0.45;
+    ctx.save();
+    ctx.globalAlpha = onGround && !climbing ? 0.32 : 0.12;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(ox, oy + 44 * s, 14 * s * shadowScale, 4.5 * s * shadowScale, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(ox, oy);
+  ctx.scale(facing < 0 ? -s : s, s);
+  ctx.translate(-15, 0);
+
+  let alpha = 1;
+  if (invuln) alpha = 0.55 + Math.sin(t/60)*0.25;
+  if (flash) alpha = 0.45 + Math.sin(t/28)*0.45;
+  ctx.globalAlpha = alpha;
+
+  const crouchMul = crouch ? 0.72 : 1;
+  // idle breathe + walk bob + jump tuck
+  const idleBob = (!moving && onGround && !climbing) ? Math.sin(t / 320) * 0.8 : 0;
+  const walkPhase = (moving && onGround && !climbing) ? t / 78 : 0;
+  const walk = Math.sin(walkPhase);
+  const walkBob = (moving && onGround && !climbing) ? Math.abs(Math.sin(walkPhase)) * 1.6 : 0;
+  const inAir = !onGround && !climbing;
+  const bodyYOff = idleBob - walkBob + (inAir ? -2 : 0) + (crouch ? 2 : 0);
+
+  const bodyH = 22 * crouchMul;
+  const legBase = 28 * crouchMul;
+
+  // --- pernas com rotação (bem mais legível) ---
+  const legAngL = inAir ? 0.55 : (climbing ? Math.sin(t/120)*0.35 : walk * 0.55);
+  const legAngR = inAir ? -0.45 : (climbing ? -Math.sin(t/120)*0.35 : -walk * 0.55);
+
+  function drawLeg(hipX, hipY, ang){
+    ctx.save();
+    ctx.translate(hipX, hipY);
+    ctx.rotate(ang);
+    // calça
+    ctx.fillStyle = pantCol;
+    roundRect(-3.5, 0, 7, 13, 2);
+    // bota
+    ctx.fillStyle = bootCol;
+    roundRect(-4.5, 11, 10, 5, 1.5);
+    // sola
+    ctx.fillStyle = shadeColor(bootCol, -25);
+    ctx.fillRect(-4.5, 14.5, 10, 1.5);
+    ctx.restore();
+  }
+  drawLeg(12, legBase - 1 + bodyYOff * 0.3, legAngL);
+  drawLeg(20, legBase - 1 + bodyYOff * 0.3, legAngR);
+
+  // --- tronco / colete com contorno ---
+  ctx.save();
+  ctx.translate(0, bodyYOff);
+  // sombra interna do corpo
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  roundRect(1, 10, 30, bodyH, 3);
+  ctx.fillStyle = bodyCol;
+  roundRect(-1, 8, 32, bodyH, 3);
+  // highlight ombro
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(1, 9, 28, 3);
+  // faixa / colete
+  ctx.fillStyle = darkCol;
+  ctx.fillRect(2, 12, 26, 4);
+  // bolsos
+  ctx.fillStyle = shadeColor(color, -20);
+  ctx.fillRect(4, 18, 8, 6);
+  ctx.fillRect(18, 18, 8, 6);
+  // costura dos bolsos
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(4.5, 18.5, 7, 5);
+  ctx.strokeRect(18.5, 18.5, 7, 5);
+  ctx.restore();
+
+  // --- braços ---
+  const armY = 12 + bodyYOff;
+  let localAng = weaponAng;
+  localAng = Math.max(-2.35, Math.min(2.35, localAng));
+  // recuo leve ao atirar
+  const recoil = firing ? -0.12 : 0;
+
+  // braço da arma
+  ctx.save();
+  ctx.translate(26, armY + 4);
+  ctx.rotate(localAng * 0.92 + recoil);
+  ctx.fillStyle = bodyCol;
+  roundRect(0, -3.2, 14, 6.4, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.fillRect(0, 0.5, 14, 2.5);
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.arc(14, 0, 3.6, 0, Math.PI*2); ctx.fill();
+  // luva / contorno da mão
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(14, 0, 3.6, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // braço de trás (balança no walk)
+  const backArmSwing = (moving && onGround) ? walk * 0.35 : Math.sin(t/400)*0.08;
+  ctx.save();
+  ctx.translate(5, armY + 2);
+  ctx.rotate(0.15 + backArmSwing);
+  ctx.fillStyle = bodyCol;
+  roundRect(-2, 0, 6, 12, 2);
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.arc(1, 12, 3.2, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // --- cabeça (com bob) ---
+  const headBob = (moving && onGround) ? walk * 0.8 : idleBob * 0.5;
+  const headY = (crouch ? 4 : 2) + bodyYOff + headBob;
+  // pescoço
+  ctx.fillStyle = skinCol;
+  ctx.fillRect(13, headY + 10, 5, 4);
+  // cabeça
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.arc(15, headY + 6, 8.8, 0, Math.PI*2); ctx.fill();
+  // sombra na bochecha
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  ctx.beginPath(); ctx.ellipse(12, headY + 8, 3, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  drawHelmet(15, headY, color, clsKey, isEnemy, isBoss, isMiniBoss, flash);
+
+  // olho
+  if (!flash){
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(18.2, headY + 5.2, 1.7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(18.7, headY + 4.7, 0.65, 0, Math.PI*2); ctx.fill();
+    // sobrancelha
+    ctx.strokeStyle = 'rgba(40,25,15,0.55)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(16.5, headY + 3.2);
+    ctx.lineTo(20, headY + 2.8);
+    ctx.stroke();
+  }
+
+  drawClassBodyDetails(clsKey, color, isEnemy, flash, crouchMul);
+
+  // --- arma ---
+  ctx.save();
+  ctx.translate(26, armY + 4);
+  ctx.rotate(localAng + recoil);
+  drawWeapon(0, 0, clsKey, isEnemy, weaponSlot, firing);
+  ctx.restore();
+
+  // detalhes extras por classe (inimigo)
+  if (isEnemy && clsKey === 'grenadeiro'){
+    // granada na cintura
+    ctx.fillStyle = '#2c3e50';
+    ctx.beginPath(); ctx.arc(6, 24, 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(4, 20, 4, 3);
+  }
+  if (isEnemy && (isBoss || isMiniBoss)){
+    // ombreiras
+    ctx.fillStyle = darkCol;
+    ctx.fillRect(-4, 10, 8, 6);
+    ctx.fillRect(26, 10, 8, 6);
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+const weaponImages = {};
+for (const k of Object.keys(WEAPON_SHEETS)){ const im = new Image(); im.src = WEAPON_SHEETS[k].src; weaponImages[k] = im; }
+
+// ===== dados =====
+// jogáveis: [chave, nome, cor, HP, vel, descrição, arma1, arma2, E, F]
+// arma: [nome, dano, cadência(ms), munição, extra]
+const P=[
+["medico","Médico","#4CAF50",130,4.3,"Suporte. Regenera vida sozinho.",
+ ["Rifle de Assalto",10,200,36,""],["Pistola",9,260,18,""],
+ ["Regeneração Rápida","Cura 40 e triplica a regeneração por 3s (recarga 14s)"],["Escudo Vital","Escudo de equipe: 70 de dano por 6s (4 abates)"]],
+["assassino","Assassino","#9C27B0",95,6.2,"Sniper ágil. Frágil, mas letal de longe.",
+ ["Rifle de Precisão",32,850,10,""],["Pistola",11,230,18,""],
+ ["Recuo Sombrio","Recua e fica invulnerável 0,5s (recarga 11s)"],["Investida Sombria","Dash na mira + invulnerável 1,2s (3 abates)"]],
+["metralhador","Metralhador","#FF5722",145,3.1,"Cadência alta. Bom contra grupos.",
+ ["Metralhadora",6,95,85,""],["Pistola",9,260,18,""],
+ ["Recarga Tática","Recarrega a arma equipada na hora (recarga 16s)"],["Rajada Perfurante","Atinge todos na linha à frente (5 abates)"]],
+["general","General","#3F51B5",115,4.1,"Equilibrado. Duas pistolas + rifle.",
+ ["Duas Pistolas",8,110,44,""],["Rifle Tático",13,230,30,""],
+ ["Marcação de Alvo","Tiro certeiro no inimigo mais próximo (recarga 10s)"],["Barragem de Artilharia","Bombardeia os 4 inimigos mais próximos (4 abates)"]],
+["engenheiro","Engenheiro","#FFC107",105,3.7,"Suporte. Torre automática + rifle.",
+ ["Rifle Automático",9,220,40,""],["Pistola",9,260,18,""],
+ ["Construir Torre","Constrói ou reconstrói uma torre automática (recarga 8s)"],["Drone de Apoio","Drone que atira por 8s (4 abates)"]],
+["cacador","Caçador","#795548",135,3.5,"Dano alto de perto. Tiro em leque.",
+ ["Escopeta",13,650,20,"5 balas"],["Pistola",9,260,18,""],
+ ["Recuo Explosivo","Estilhaços em área ao redor (recarga 12s)"],["Rajada Direcionada","Estilhaços em cone na mira (3 abates)"]],
+["demolidor","Demolidor","#E65100",140,3.4,"Tiros explosivos e granadas. Controle de área.",
+ ["Lançador Explosivo",22,700,12,"explosão 70"],["Pistola",9,260,18,""],
+ ["Granada de Mão","Arremessa granada na mira (recarga 9s)"],["Bombardeio","Lança 3 granadas nos inimigos próximos (4 abates)"]],
+["lancachamas","Lança-chamas","#FF6F00",125,3.6,"Fogo contínuo de curta distância. Queima grupos.",
+ ["Lança-chamas",4,50,120,"alcance 180"],["Pistola",9,260,18,""],
+ ["Rajada de Fogo","Chama intensa em cone por 1,5s (recarga 11s)"],["Mar de Fogo","Queima todos os inimigos próximos (4 abates)"]]
+];
+// inimigos: [chave, nome, cor, arma, vida×, cadência, dano×, alcance, habilidade]
+const E=[
+["soldado","Soldado","#c0392b","Rifle","1,3×",620,"1,0×",460,"Rajada Tática"],
+["sniper","Sniper","#2c3e50","Rifle de precisão","1,0×",1250,"2,3×",650,"Tiro Certeiro"],
+["pesado","Pesado","#6d4c30","Metralhadora pesada","2,7×",180,"0,55×",400,"Investida Brutal"],
+["batedor","Batedor","#8e44ad","Uzi","0,95×",460,"0,85×",420,"Investida Veloz"],
+["grenadeiro","Grenadeiro","#27ae60","Rifle","1,4×",900,"1,1×",380,"Granada"],
+["miniboss","Oficial de Elite","#8e0000","Metralhadora pesada","4,5×",280,"1,4×",520,"Barragem de Elite"],
+["boss","Comandante Supremo","#1a1a1a","Metralhadora pesada","chefe",200,"1,0×",600,"Barragem Devastadora"]
+];
+
+// ===== cartões =====
+const fmt=n=>n.toFixed(1).replace('.',',');
+const stage=(o)=>`<canvas class="stage" data-o='${JSON.stringify(o)}'></canvas>`;
+const wb=(label,a,o)=>`<div class="w"><div class="wt"><b>${label}</b><span>${a[0]}</span></div>${stage(o)}
+ <div class="chips"><span>Dano ${a[1]}</span><span>${fmt(1000/a[2])} tiros/s</span><span>${a[3]} balas</span>${a[4]?`<span>${a[4]}</span>`:''}</div></div>`;
+const pc=(c,i)=>`<article class="card" style="--c:${c[2]}"><div class="head"><div class="n">${i+1}</div><h2>${c[1]}</h2></div>
+ <p class="desc">${c[5]}</p><div class="stats"><span>❤ ${c[3]} HP</span><span>➤ ${fmt(c[4])} vel</span></div>
+ ${wb('Arma 1',c[6],{k:c[0],c:c[2],w:'primary',i:i})}${wb('Arma 2',c[7],{k:c[0],c:c[2],w:'secondary',i:i})}
+ <div class="sk"><div class="e"><i>E · ${c[8][0]}</i><br><small>${c[8][1]}</small></div><div class="f" style="margin-top:6px"><i>F · ${c[9][0]}</i><br><small>${c[9][1]}</small></div></div></article>`;
+const ec=(c,i)=>`<article class="card" style="--c:${c[2]==='#1a1a1a'?'#888':c[2]}"><div class="head"><div class="n">${i+1}</div><h2>${c[1]}</h2></div>
+ <div class="w"><div class="wt"><b>Arma</b><span>${c[3]}</span></div>${stage({k:c[0],c:c[2],w:'primary',e:1,i:i})}
+ <div class="chips"><span>Vida ${c[4]}</span><span>${fmt(1000/c[5])} tiros/s</span><span>Dano ${c[6]}</span><span>Alcance ${c[7]}</span></div></div>
+ <div class="sk"><div class="f"><i>Habilidade · ${c[8]}</i></div></div></article>`;
+
+const list=document.getElementById('list');
+let stages=[];
+function show(t){
+  list.innerHTML=t==='p'?P.map(pc).join(''):E.map(ec).join('');
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));
+  stages=[...list.querySelectorAll('canvas.stage')].map(cv=>({cv,o:JSON.parse(cv.dataset.o),w:0,h:0}));
+  sizeAll();
+  if(still) frame(0);
+}
+function sizeAll(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  for(const s of stages){
+    const w=s.cv.clientWidth,h=s.cv.clientHeight;
+    if(w&&(s.w!==w||s.h!==h)){s.w=w;s.h=h;s.cv.width=w*dpr;s.cv.height=h*dpr;s.dpr=dpr;}
+  }
+}
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(now){
+  for(const s of stages){
+    if(!s.w) continue;
+    const g=s.cv.getContext('2d'); ctx=g;
+    g.setTransform(s.dpr,0,0,s.dpr,0,0);
+    g.clearRect(0,0,s.w,s.h);
+    const o=s.o, boss=o.k==='boss', mini=o.k==='miniboss';
+    const base=(boss?1.6:mini?1.9:2.5)*Math.min(1,s.w/300);
+    const sc=base*(boss?1.55:mini?1.2:1); // escala base × escala do jogo
+    const bodyH=44*sc, ground=s.h-18, oy=ground-bodyH, ox=s.w*0.36;
+    // plataforma de madeira (mesmo clima do jogo)
+    g.fillStyle='#8a5c30'; g.fillRect(ox-70*Math.min(1,s.w/300)-20,ground,s.w*0.72,9);
+    g.fillStyle='#4a2c12'; g.fillRect(ox-70*Math.min(1,s.w/300)-20,ground+9,s.w*0.72,3);
+    const phase=(now+o.i*370)%1500;
+    drawSoldierSprite(ox,oy,{
+      color:o.c, facing:1, crouch:false, isEnemy:!!o.e, clsKey:o.k,
+      weaponAng:-0.04, scale:sc, isBoss:boss, isMiniBoss:mini,
+      moving:false, onGround:true, weaponSlot:o.w,
+      firing: !still && phase<130
+    });
+  }
+  if(!still) requestAnimationFrame(frame);
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.t));
+addEventListener('resize',()=>{sizeAll(); if(still) frame(0);});
+show('p');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Zênite Zero — Céu Aberto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Teko:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="960" height="540"></canvas>
+
+  <!-- Aviso: gire o celular -->
+  <div id="rotateHint" aria-hidden="true">
+    <div class="rotIcon">📱</div>
+    <p>Gire o celular para jogar na horizontal</p>
+  </div>
+
+  <!-- Controles virtuais (mobile) -->
+  <div id="mobileControls" class="hidden" aria-hidden="true">
+    <div class="mcLeft">
+      <div id="mcStick"><div id="mcKnob"></div></div>
+    </div>
+    <button type="button" class="mcBtn mcPause" id="mcPause">❚❚</button>
+    <div class="mcRight">
+      <button type="button" class="mcBtn mcSmall mcQ" id="mcQ">Q</button>
+      <button type="button" class="mcBtn mcSmall mcE" id="mcE">E</button>
+      <button type="button" class="mcBtn mcSmall mcF" id="mcF">F</button>
+      <button type="button" class="mcBtn mcJump" data-key=" " id="mcJump">▲</button>
+      <button type="button" class="mcBtn mcFire" id="mcFire">🔥</button>
+    </div>
+  </div>
+
+  <!-- Tela inicial -->
+  <div id="titleScreen">
+    <div class="scene" aria-hidden="true">
+      <div class="sun"></div>
+      <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+      <div class="bamboo far"></div>
+      <div class="bamboo near"></div>
+      <div class="deck"><div class="soldier"></div></div>
+      <div class="void"></div>
+    </div>
+    <div class="titleContent">
+      <h1 class="logo"><span class="l1">ZÊNITE</span><span class="l2">ZERO</span></h1>
+      <div class="banner">CÉU ABERTO</div>
+      <p class="tagline">Sem chão. Se cair, é game over.<br>Escolha sua classe e sobreviva nas plataformas do bambuzal.</p>
+      <div class="titleBtns">
+        <button class="btnPrimary btnPlay" id="btnPlay">JOGAR</button>
+        <div class="btnRow">
+          <a class="btnSecondary btnLink" href="personagens.html">PERSONAGENS</a>
+          <button class="btnSecondary" id="btnRecords">RECORDES</button>
+          <button class="btnSecondary" id="btnFullscreen">TELA CHEIA</button>
+        </div>
+      </div>
+    </div>
+    <div class="hazard" aria-hidden="true"><span>NÃO CAIA</span><span>NÃO CAIA</span><span>NÃO CAIA</span><span>NÃO CAIA</span><span>NÃO CAIA</span><span>NÃO CAIA</span></div>
+  </div>
+
+  <!-- Escolha de classe (mais limpa) -->
+  <div id="menu" class="hidden">
+    <h1>ESCOLHA SUA CLASSE</h1>
+    <p class="sub">Cada classe tem 2 armas, um recurso (E) e uma habilidade especial (F).</p>
+    <div id="classGrid"></div>
+    <button class="btnSecondary backBtn" id="btnBackTitle">← Voltar</button>
+  </div>
+
+  <!-- Escolha de mapa -->
+  <div id="mapSelect" class="hidden">
+    <h1>ESCOLHA O MAPA</h1>
+    <p class="sub">Três cenários no mesmo estilo — sem chão. Se cair, é game over.</p>
+    <div id="mapGrid"></div>
+    <button class="btnSecondary backBtn" id="btnBackClass">← Voltar</button>
+  </div>
+
+  <div id="gameover" class="hidden">
+    <h1 id="gameoverTitle">VOCÊ CAIU EM COMBATE</h1>
+    <p id="finalScore"></p>
+    <button class="btnPrimary" id="restartBtn">Jogar novamente</button>
+  </div>
+
+  <div id="pauseOverlay" class="hidden">
+    <h2>PAUSADO</h2>
+    <p>ESC — continuar</p>
+    <p>M — mudo</p>
+    <div class="pauseBtns">
+      <button class="btnContinue" id="pauseContinue">Continuar</button>
+      <button class="btnMenu" id="pauseMenu">Voltar ao Menu</button>
+    </div>
+  </div>
+
+  <!-- Recordes -->
+  <div id="recordsOverlay" class="hidden">
+    <h2>🏆 RECORDES</h2>
+    <div id="recordsBody"></div>
+    <button class="btnSecondary" id="btnCloseRecords">← Voltar</button>
+  </div>
+
+  <!-- Tutorial no início da partida -->
+  <div id="tutorialOverlay" class="hidden">
+    <div class="tutBox">
+      <h2>COMO JOGAR</h2>
+      <p class="tutDesktop"><b>A / D</b> — mover &nbsp;·&nbsp; <b>W / Espaço</b> — pular</p>
+      <p class="tutDesktop"><b>S</b> — agachar &nbsp;·&nbsp; <b>Mouse</b> — mirar e atirar</p>
+      <p class="tutDesktop"><b>Q</b> — trocar arma &nbsp;·&nbsp; <b>E</b> — recurso da classe</p>
+      <p class="tutDesktop"><b>F</b> — habilidade especial &nbsp;·&nbsp; <b>ESC</b> — pausar &nbsp;·&nbsp; <b>M</b> — mudo</p>
+      <p class="tutMobile"><b>◀ ▶</b> — mover &nbsp;·&nbsp; <b>▲</b> pular &nbsp;·&nbsp; <b>▼</b> agachar</p>
+      <p class="tutMobile"><b>🔥</b> — atirar &nbsp;·&nbsp; toque na tela para <b>mirar</b></p>
+      <p class="tutMobile"><b>Q</b> arma &nbsp;·&nbsp; <b>E</b> recurso &nbsp;·&nbsp; <b>F</b> especial &nbsp;·&nbsp; <b>❚❚</b> pausa</p>
+      <p class="tutWarn">⚠️ Não caia das plataformas — sem chão, é game over!</p>
+      <button class="btnPrimary" id="btnTutorialOk">ENTENDI — JOGAR</button>
+    </div>
+  </div>
+
+  <!-- Loja entre ondas -->
+  <div id="shopOverlay" class="hidden">
+    <h2 id="shopWaveTitle">ONDA 2</h2>
+    <p id="shopStats" style="color:#9aa;margin:4px 0 14px;font-size:14px;"></p>
+    <div id="shopMoney" style="color:#ffcc33;font-size:22px;font-weight:700;margin-bottom:16px;">$0</div>
+    <div id="shopItems" style="display:flex;flex-direction:column;gap:10px;min-width:280px;max-width:360px;"></div>
+    <button class="btnPrimary" id="btnShopContinue" style="margin-top:18px;">CONTINUAR</button>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,442 @@
+* { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #090a0f;
+    font-family: 'Rajdhani', 'Rajdhani', Arial, sans-serif;
+    color: #eee;
+    overflow: hidden;
+  }
+  #wrap {
+    position: relative;
+    width: 100vw; height: 100vh; height: 100dvh;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 20%, #1b2735, #090a0f 80%);
+  }
+  canvas {
+    display: block;
+    background: #7fb06b;
+    /* image-rendering removed for smoother HUD text */
+    cursor: crosshair;
+  }
+  /* ---- overlays comuns ---- */
+  #titleScreen, #menu, #mapSelect, #gameover, #pauseOverlay, #recordsOverlay, #tutorialOverlay {
+    position: absolute; inset: 0;
+    background: rgba(8,10,16,0.96);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; z-index: 10;
+    overflow-y: auto; padding: 24px 16px;
+    justify-content: safe center;
+  }
+  #mapSelect h1 {
+    font-family: 'Teko', 'Rajdhani', sans-serif;
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 4px; letter-spacing: 3px; font-weight: 600;
+    color: #ffcc33;
+  }
+  #mapSelect .sub { color: #8a9; margin: 0 0 18px; font-size: 13px; max-width: 560px; }
+  #mapGrid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    width: 100%; max-width: 860px;
+  }
+  @media (max-width: 700px) { #mapGrid { grid-template-columns: 1fr; } }
+  .mapCard {
+    background: #14181f; border: 2px solid #333; border-radius: 10px;
+    padding: 16px 14px; cursor: pointer; text-align: left;
+    transition: transform .12s, border-color .12s, background .12s;
+  }
+  .mapCard:hover { transform: translateY(-3px); border-color: #ffcc33; background: #1a2030; }
+  .mapCard .mapPreview {
+    height: 110px; border-radius: 8px; margin-bottom: 10px;
+    position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #a9cf94 0%, #7fb06b 40%, #4f7a45 100%);
+    box-shadow: inset 0 -16px 28px rgba(0,0,0,0.35), inset 0 2px 8px rgba(255,255,255,0.08);
+  }
+  /* Bambuzal: céu claro + bambus densos + plataforma de madeira */
+  .mapCard.bambuzal .mapPreview {
+    background:
+      linear-gradient(180deg, rgba(210,230,160,0.95) 0%, transparent 30%),
+      linear-gradient(180deg, #d0e8a8 0%, #9ecf68 40%, #5a8a40 75%, #2e5a28 100%);
+  }
+  .mapCard.bambuzal .mapPreview::before {
+    content: '';
+    position: absolute; left: 4%; bottom: 16%; width: 5px; height: 62%;
+    background: linear-gradient(90deg, #4a7a28, #6a9a40);
+    border-radius: 2px;
+    box-shadow:
+      12px -6px 0 #5a8a32, 24px 2px 0 #4e7a2a, 36px -10px 0 #6a9a38,
+      48px 4px 0 #457028, 60px -4px 0 #5c8830, 72px 0 0 #50802c,
+      84px -8px 0 #5a8a30, 96px 3px 0 #4a7028, 108px -2px 0 #5e8c34,
+      120px 6px 0 #457028, 132px -5px 0 #568230;
+  }
+  .mapCard.bambuzal .mapPreview::after {
+    content: '';
+    position: absolute; left: 10%; right: 10%; bottom: 12%; height: 12px;
+    background: linear-gradient(180deg, #a07040, #6a4020);
+    border-radius: 2px;
+    box-shadow: 0 3px 0 #4a2c12, 0 -2px 0 rgba(255,220,160,0.2);
+  }
+  /* Ruínas: céu dourado + pilares de pedra + plataforma */
+  .mapCard.ruinas .mapPreview {
+    background:
+      linear-gradient(180deg, rgba(240,230,200,0.7) 0%, transparent 40%),
+      linear-gradient(180deg, #e8dcc0 0%, #c4b08a 45%, #7a6a48 80%, #4a4030 100%);
+  }
+  .mapCard.ruinas .mapPreview::before {
+    content: '';
+    position: absolute; left: 12%; bottom: 14%; width: 13px; height: 62%;
+    background: linear-gradient(90deg, #5a4a30, #7a6a50);
+    border-radius: 1px;
+    box-shadow:
+      22px -4px 0 #6a5a40, 44px 2px 0 #5a4a32, 66px -8px 0 #7a6a48,
+      88px 0 0 #5a4a30, 110px -3px 0 #6a5a38, 132px 4px 0 #5a4a28;
+  }
+  .mapCard.ruinas .mapPreview::after {
+    content: '';
+    position: absolute; left: 8%; right: 8%; bottom: 12%; height: 11px;
+    background: linear-gradient(180deg, #9a8a68, #6a5a40);
+    border-radius: 1px;
+    box-shadow: 0 -10px 0 3px #6a5a40, 0 2px 0 #4a3a28;
+  }
+  /* Floresta Negra: céu noturno + pinheiros grandes + madeira escura */
+  .mapCard.canopy .mapPreview {
+    background:
+      radial-gradient(ellipse at 75% 18%, rgba(220,210,160,0.25) 0%, transparent 35%),
+      linear-gradient(180deg, #060e1a 0%, #0e1c28 30%, #0c1a14 65%, #08120c 100%);
+  }
+  .mapCard.canopy .mapPreview::before {
+    content: '';
+    position: absolute; left: 2%; bottom: 8%; width: 0; height: 0;
+    border-left: 18px solid transparent; border-right: 18px solid transparent;
+    border-bottom: 58px solid #0a1c12;
+    filter: drop-shadow(28px -2px 0 #081610) drop-shadow(56px 4px 0 #0c2214)
+            drop-shadow(84px -6px 0 #0a1810) drop-shadow(112px 2px 0 #0e2416)
+            drop-shadow(140px -4px 0 #08140e) drop-shadow(168px 6px 0 #0a1a10);
+  }
+  .mapCard.canopy .mapPreview::after {
+    content: '';
+    position: absolute; left: 10%; right: 10%; bottom: 10%; height: 11px;
+    background: linear-gradient(180deg, #3a2c1c, #1a120c);
+    border-radius: 2px;
+    box-shadow: 0 2px 0 #0c0804, 0 -3px 0 rgba(100,80,50,0.15),
+                inset 0 1px 0 rgba(140,110,70,0.15);
+  }
+  .mapCard h3 { margin: 0 0 4px; font-size: 17px; color: #fff; }
+  .mapCard p { margin: 0; font-size: 12px; color: #9aa; line-height: 1.35; }
+  #mapSelect .backBtn { margin-top: 20px; }
+  #tutorialOverlay { z-index: 30; background: rgba(8,10,16,0.88); }
+  #recordsOverlay { z-index: 25; }
+  .hidden { display: none !important; }
+
+  #recordsOverlay h2 {
+    font-family: 'Teko', sans-serif; color: #ffcc33; font-size: 42px;
+    margin: 0 0 18px; letter-spacing: 3px;
+  }
+  #recordsBody {
+    background: #14181f; border: 1px solid #333; border-radius: 12px;
+    padding: 20px 28px; min-width: 280px; max-width: 420px;
+    text-align: left; line-height: 1.7; font-size: 15px; color: #ccc;
+  }
+  #recordsBody b { color: #ffcc33; }
+  #recordsBody .recRow { display: flex; justify-content: space-between; gap: 16px; margin: 6px 0; }
+  #recordsBody .recLabel { color: #9aa; }
+  #recordsOverlay button { margin-top: 22px; }
+
+  #tutorialOverlay .tutBox {
+    background: #14181f; border: 2px solid #445; border-radius: 14px;
+    padding: 28px 32px; max-width: 520px;
+  }
+  #tutorialOverlay h2 {
+    font-family: 'Teko', sans-serif; color: #ffcc33; font-size: 36px;
+    margin: 0 0 16px; letter-spacing: 2px;
+  }
+  #tutorialOverlay p { margin: 8px 0; font-size: 15px; color: #eee; }
+  #tutorialOverlay p b { color: #ffcc33; }
+  #tutorialOverlay .tutWarn { color: #ff8888; margin-top: 14px; font-weight: 600; }
+  #tutorialOverlay button {
+    margin-top: 18px;
+    padding: 12px 36px; font-size: 16px; font-weight: bold;
+    border: none; border-radius: 8px; cursor: pointer;
+    min-width: 200px;
+  }
+
+  .btnPrimary { background: #ffcc33; color: #222; }
+.btnPrimary:hover { background: #ffe08a; }
+.btnSecondary { background: #2a3040; color: #ddd; border: 1px solid #445; }
+.btnSecondary:hover { background: #3a4050; }
+#hint { font-size: 11px; color: #667; margin-top: 14px; max-width: 640px; line-height: 1.45; }
+
+/* ---- tela inicial: pôr do sol no bambuzal, vazio embaixo ---- */
+#titleScreen {
+  background: linear-gradient(180deg, #0c1226 0%, #2a2f5a 38%, #c8566a 70%, #f59a4d 100%);
+  overflow: hidden; padding: 0;
+  justify-content: flex-start;
+}
+#titleScreen .scene { position: absolute; inset: 0; pointer-events: none; }
+.sun {
+  position: absolute; left: 50%; bottom: 8%; width: min(46vw, 380px); aspect-ratio: 1;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(circle, #fff3c4 0%, #ffd36b 40%, rgba(255,160,80,0) 72%);
+}
+.cloud {
+  position: absolute; height: 18px; border-radius: 20px;
+  background: rgba(255,214,190,0.22); filter: blur(1px);
+  animation: drift linear infinite;
+}
+.cloud.c1 { top: 16%; width: 170px; animation-duration: 70s; }
+.cloud.c2 { top: 27%; width: 110px; animation-duration: 95s; animation-delay: -30s; }
+.cloud.c3 { top: 38%; width: 220px; animation-duration: 120s; animation-delay: -70s; opacity: .7; }
+@keyframes drift { from { left: -240px; } to { left: 105%; } }
+.bamboo {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background-repeat: repeat-x;
+}
+.bamboo.far {
+  height: 46%; opacity: .55;
+  background-image: repeating-linear-gradient(90deg, #3b2a46 0 6px, transparent 6px 54px);
+  background-position: 18px 0;
+}
+.bamboo.near {
+  height: 58%;
+  background-image:
+    repeating-linear-gradient(90deg, #10200f 0 10px, transparent 10px 118px),
+    repeating-linear-gradient(0deg, transparent 0 62px, #1d3a18 62px 66px);
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 10px, transparent 10px 118px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 10px, transparent 10px 118px);
+}
+.deck {
+  position: absolute; left: 50%; bottom: 9%; width: min(60vw, 460px); height: 14px;
+  transform: translateX(-50%); border-radius: 3px;
+  background: linear-gradient(180deg, #a07040, #5a3818);
+  box-shadow: 0 5px 0 #33200c, 0 14px 30px rgba(0,0,0,.45);
+  animation: bob 5s ease-in-out infinite;
+}
+@keyframes bob { 50% { transform: translateX(-50%) translateY(-6px); } }
+.soldier {
+  position: absolute; left: 62%; bottom: 14px; width: 18px; height: 40px;
+  background: #0a0f12; border-radius: 8px 8px 2px 2px;
+}
+.soldier::before { content: ''; position: absolute; top: -9px; left: 2px; width: 14px; height: 12px; background: #0a0f12; border-radius: 50% 50% 40% 40%; }
+.soldier::after { content: ''; position: absolute; top: 12px; left: 12px; width: 34px; height: 5px; background: #0a0f12; border-radius: 2px; }
+.void { position: absolute; left: 0; right: 0; bottom: 0; height: 9%; background: linear-gradient(180deg, transparent, #05060a 85%); }
+
+.titleContent {
+  position: relative; z-index: 2; margin: auto; padding: 24px 16px 70px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.logo { margin: 0; line-height: .82; font-family: 'Teko', sans-serif; font-weight: 700; display: flex; flex-direction: column; align-items: center; }
+.logo .l1 { font-size: clamp(34px, 7vw, 64px); letter-spacing: .5em; margin-right: -.5em; color: #fff; text-shadow: 0 2px 0 #3a2a5a, 0 0 18px rgba(20,10,40,.8); }
+.logo .l2 {
+  font-size: clamp(76px, 20vw, 170px); letter-spacing: .02em; color: #ffcc33;
+  text-shadow: 0 4px 0 #8a5a10, 0 10px 0 #4a2c08, 0 0 40px rgba(255,170,40,.45);
+}
+.banner {
+  margin: 10px 0 14px; padding: 4px 26px; font-family: 'Teko', sans-serif; font-weight: 600;
+  font-size: clamp(18px, 3.4vw, 26px); letter-spacing: .6em; text-indent: .6em;
+  color: #10131c; background: #ffcc33; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+}
+#titleScreen .tagline { color: #ffe6d0; font-size: clamp(13px, 2.2vw, 16px); margin: 0 0 22px; max-width: 460px; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+#titleScreen .titleBtns { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.btnRow { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+#titleScreen button, #titleScreen .btnLink, #menu .backBtn, #gameover button {
+  padding: 12px 26px; font-size: 16px; font-weight: bold; font-family: inherit;
+  border: none; border-radius: 8px; cursor: pointer; min-width: 150px;
+  text-decoration: none; display: inline-block;
+}
+#titleScreen .btnPlay { min-width: 260px; padding: 16px 40px; font-size: 24px; font-family: 'Teko', sans-serif; letter-spacing: .3em; text-indent: .3em; box-shadow: 0 6px 0 #8a5a10, 0 10px 24px rgba(0,0,0,.4); animation: pulse 2.4s ease-in-out infinite; }
+#titleScreen .btnPlay:active { transform: translateY(4px); box-shadow: 0 2px 0 #8a5a10; }
+@keyframes pulse { 50% { box-shadow: 0 6px 0 #8a5a10, 0 0 34px rgba(255,204,51,.7); } }
+#titleScreen .btnSecondary { background: rgba(10,12,22,.62); color: #fff; border: 1px solid rgba(255,255,255,.28); }
+.hazard {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; height: 30px; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-around;
+  background: repeating-linear-gradient(-45deg, #ffcc33 0 16px, #12141c 16px 32px);
+}
+.hazard span { background: #12141c; color: #ffcc33; padding: 0 12px; font-family: 'Teko', sans-serif; font-size: 18px; letter-spacing: .3em; line-height: 24px; }
+@media (prefers-reduced-motion: reduce) { .cloud, .deck, .btnPlay { animation: none !important; } }
+
+/* ---- escolha de classe ---- */
+  #menu h1 {
+    font-family: 'Teko', 'Rajdhani', sans-serif;
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 4px; letter-spacing: 3px; font-weight: 600;
+    color: #ffcc33; text-shadow: 0 0 12px rgba(255,204,51,0.5);
+  }
+  #menu .sub {
+    color: #8a9; margin: 0 0 18px; font-size: 13px; max-width: 560px;
+  }
+  #classGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%; max-width: 860px;
+  }
+  @media (max-width: 700px) {
+    #classGrid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .classCard {
+    background: #14181f; border: 2px solid #333; border-radius: 10px;
+    padding: 12px 14px; cursor: pointer;
+    transition: transform .12s, border-color .12s, background .12s;
+    text-align: left;
+  }
+  .classCard:hover { transform: translateY(-3px); border-color: #ffcc33; background: #1a2030; }
+  .classCard .icon { width: 28px; height: 28px; border-radius: 6px; margin-bottom: 6px; }
+  .classCard h3 { margin: 0 0 3px 0; font-size: 17px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+  .classCard p { margin: 0; font-size: 12px; color: #9aa; line-height: 1.35; }
+  .classCard .stats { margin-top: 7px; font-size: 12px; color: #7d9; font-weight: 700; }
+  .classCard .row { margin-top: 4px; font-size: 11.5px; line-height: 1.4; }
+  .classCard .weapons { color: #6cf; }
+  .classCard .active { color: #7cf; }
+  .classCard .ability { color: #f9a; }
+  .classCard .lbl { opacity: 0.7; font-weight: 600; }
+  #menu .backBtn { margin-top: 20px; }
+  #hint {
+    font-size: 11px; color: #667; margin-top: 14px; max-width: 640px; line-height: 1.45;
+  }
+
+  /* ---- game over ---- */
+  #gameover h1 { font-family: 'Teko', sans-serif; color: #ff5555; font-size: clamp(28px, 4.5vw, 40px); margin-bottom: 8px; letter-spacing: 2px; }
+  #gameover #finalScore { font-size: 16px; color: #ccc; line-height: 1.6; }
+
+  /* ---- pausa ---- */
+  #shopOverlay {
+    position: absolute; inset: 0; z-index: 22;
+    background: rgba(8,10,16,0.96);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px 16px;
+  }
+  #shopOverlay h2 {
+    font-family: 'Teko', sans-serif; color: #ffcc33; font-size: 40px;
+    margin: 0 0 6px; letter-spacing: 3px;
+  }
+  .shopItem {
+    background: #14181f; border: 2px solid #333; border-radius: 10px;
+    padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; transition: border-color .12s, background .12s;
+  }
+  .shopItem:hover { border-color: #ffcc33; background: #1a2030; }
+  .shopItem.disabled { opacity: 0.45; cursor: not-allowed; }
+  .shopItem .shopLabel { text-align: left; color: #eee; font-weight: 700; font-size: 15px; }
+  .shopItem .shopPrice { color: #ffcc33; font-weight: 700; font-size: 15px; }
+  #pauseOverlay { z-index: 20; background: rgba(8,10,16,0.9); }
+  #pauseOverlay h2 { font-family: 'Teko', sans-serif; color: #ffcc33; font-size: 42px; margin: 0 0 10px; letter-spacing: 3px; font-weight: 600; }
+  #pauseOverlay p { color: #9aa; font-size: 14px; margin: 4px 0; }
+  #pauseOverlay .pauseBtns { margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  #pauseOverlay button {
+    padding: 11px 26px; font-size: 15px; font-weight: bold;
+    border: none; border-radius: 8px; cursor: pointer; min-width: 140px;
+  }
+  #pauseOverlay .btnContinue { background: #ffcc33; color: #222; }
+  #pauseOverlay .btnMenu { background: #2a3040; color: #eee; border: 1px solid #445; }
+  #pauseOverlay .btnContinue:hover { background: #ffe08a; }
+  #pauseOverlay .btnMenu:hover { background: #3a4050; }
+
+
+/* ---- mobile / touch ---- */
+html, body {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+}
+#wrap {
+  touch-action: none;
+}
+canvas {
+  touch-action: none;
+}
+
+#mobileControls {
+  position: absolute; inset: 0; z-index: 8; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 0 max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+}
+#mobileControls.hidden { display: none !important; }
+.mcLeft { pointer-events: auto; }
+#mcStick {
+  position: relative; width: 150px; height: 150px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(20,24,32,.35) 0%, rgba(20,24,32,.55) 100%);
+  border: 2px solid rgba(255,255,255,.22); touch-action: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
+}
+#mcStick::before, #mcStick::after { content: ''; position: absolute; color: rgba(255,255,255,.35); font-size: 14px; }
+#mcStick::before { content: '◀'; left: 12px; top: 50%; transform: translateY(-50%); }
+#mcStick::after { content: '▶'; right: 12px; top: 50%; transform: translateY(-50%); }
+#mcKnob {
+  position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; border-radius: 50%;
+  transform: translate(-50%, -50%); pointer-events: none;
+  background: rgba(255,255,255,.28); border: 2px solid rgba(255,255,255,.5);
+}
+#mcStick.active #mcKnob { background: rgba(255,204,51,.55); border-color: #ffcc33; }
+
+.mcRight { pointer-events: auto; position: relative; width: 210px; height: 190px; }
+.mcBtn {
+  position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.25);
+  background: rgba(20,24,32,.55); color: #eee; font-weight: 700; font-family: 'Rajdhani', sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,.35); padding: 0;
+}
+.mcBtn:active, .mcBtn.active { background: rgba(255,204,51,.5); border-color: #ffcc33; transform: scale(.93); }
+.mcFire { width: 96px; height: 96px; right: 0; bottom: 0; font-size: 36px; background: rgba(180,40,30,.55); border-color: rgba(255,100,80,.6); }
+.mcFire:active, .mcFire.active { background: rgba(255,80,60,.75); border-color: #ff6644; }
+.mcJump { width: 74px; height: 74px; right: 104px; bottom: 6px; font-size: 26px; }
+.mcSmall { width: 48px; height: 48px; font-size: 15px; border-radius: 14px; background: rgba(30,40,55,.62); }
+.mcQ { right: 150px; bottom: 90px; }
+.mcE { right: 96px; bottom: 112px; }
+.mcF { right: 40px; bottom: 112px; }
+.mcPause { pointer-events: auto; position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); width: 40px; height: 40px; font-size: 13px; opacity: .8; }
+#mobileControls.hidden { display: none !important; }
+
+#rotateHint {
+  position: absolute; inset: 0; z-index: 60; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: rgba(8,10,16,.97); text-align: center; padding: 24px; font-size: 18px; color: #ffcc33;
+}
+#rotateHint .rotIcon { font-size: 64px; animation: rot 2.4s ease-in-out infinite; }
+@keyframes rot { 0%, 20% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+body.portrait.playing #rotateHint { display: flex; }
+@media (prefers-reduced-motion: reduce) { #rotateHint .rotIcon { animation: none; } }
+
+.tutMobile { display: none; }
+.tutDesktop { display: block; }
+
+html, body { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.tutMobile { display: none; }
+.tutDesktop { display: block; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .tutMobile { display: block; }
+  .tutDesktop { display: none; }
+  .classCard, .mapCard { padding: 12px; }
+  #tutorialOverlay .tutBox { padding: 20px 18px; max-width: 96vw; }
+  #shopItems { max-width: 92vw; }
+}
+
+/* celular deitado: pouca altura — compacta menus e tela inicial */
+@media (max-height: 520px) {
+  #menu h1, #mapSelect h1 { font-size: 26px; margin-bottom: 2px; }
+  #menu .sub, #mapSelect .sub { margin-bottom: 8px; font-size: 12px; }
+  #classGrid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  #mapGrid { gap: 8px; grid-template-columns: repeat(3, 1fr); }
+  .mapCard .mapPreview { height: 60px; }
+  .classCard .icon { display: none; }
+  .classCard p { display: none; }
+  .titleContent { padding: 8px 16px 44px; }
+  .logo .l1 { font-size: 24px; } .logo .l2 { font-size: 64px; }
+  .banner { margin: 4px 0 8px; font-size: 16px; }
+  #titleScreen .tagline { display: none; }
+  #titleScreen .btnPlay { padding: 8px 32px; font-size: 20px; min-width: 200px; }
+  #titleScreen button, #titleScreen .btnLink { padding: 8px 16px; font-size: 14px; min-width: 0; }
+  .hazard { height: 22px; } .hazard span { font-size: 14px; line-height: 18px; }
+  .deck, .soldier { display: none; }
+  #pauseOverlay h2, #recordsOverlay h2 { font-size: 30px; margin-bottom: 6px; }
+  .shopItem { padding: 8px 12px; }
+  #shopOverlay h2 { font-size: 28px; }
+}
+@media (max-height: 400px) {
+  #mcStick { width: 120px; height: 120px; } #mcKnob { width: 50px; height: 50px; }
+  .mcRight { width: 180px; height: 150px; }
+  .mcFire { width: 78px; height: 78px; } .mcJump { width: 60px; height: 60px; right: 86px; }
+  .mcSmall { width: 40px; height: 40px; } .mcQ { right: 124px; bottom: 74px; } .mcE { right: 78px; bottom: 90px; } .mcF { right: 32px; bottom: 90px; }
+}
